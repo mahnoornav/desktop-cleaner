@@ -35,3 +35,28 @@ body,
     rgba(124, 92, 255, 0) 72%
   );
 }
+
+.widget {
+  position: relative;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.widget.over {
+  border-color: #ff9a3c;
+  box-shadow: inset 0 0 24px rgba(255, 154, 60, 0.35);
+}
+
+.badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background: #ff9a3c;
+  color: #0b0a14;
+  font: 700 15px sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
