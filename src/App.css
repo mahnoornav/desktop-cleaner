@@ -20,7 +20,6 @@ body,
 }
 
 .hole {
-  pointer-events: none;
   width: 110px;
   height: 110px;
   border-radius: 50%;
@@ -59,4 +58,17 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.hole {
+  cursor: pointer;
+}
+
+.app {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 28px;
+  background: #14121f;
+  color: #edeaf7;
+  font-family: sans-serif;
 }

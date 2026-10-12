@@ -13,6 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
+        "label": "main",
         "title": "Desktop Black Hole",
         "width": 200,
         "height": 200,
@@ -21,6 +22,15 @@
         "transparent": true,
         "alwaysOnTop": true,
         "shadow": false
+      },
+      {
+        "label": "app",
+        "title": "Desktop Black Hole",
+        "url": "index.html",
+        "width": 880,
+        "height": 560,
+        "center": true,
+        "visible": false
       }
     ],
     "security": {
