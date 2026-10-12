@@ -10,11 +10,17 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "desktop-black-hole",
-        "width": 800,
-        "height": 600
+        "title": "Desktop Black Hole",
+        "width": 200,
+        "height": 200,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "shadow": false
       }
     ],
     "security": {
