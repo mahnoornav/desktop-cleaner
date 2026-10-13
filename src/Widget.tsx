@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { Window } from "@tauri-apps/api/window";
+import idleImg from "./assets/idle.png";
+import openMouthImg from "./assets/open-mouth.png";
 import "./App.css";
 
 async function openApp() {
@@ -13,9 +15,13 @@ async function openApp() {
 
 function Widget() {
   const [isOver, setIsOver] = useState(false);
+  const [pop, setPop] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
 
   useEffect(() => {
+    // Load the open-mouth image early so there is no flicker on first drag
+    new Image().src = openMouthImg;
+
     const unlistenPromise = getCurrentWebview().onDragDropEvent((event) => {
       const payload = event.payload;
       if (payload.type === "enter" || payload.type === "over") {
@@ -24,7 +30,8 @@ function Widget() {
         setIsOver(false);
       } else if (payload.type === "drop") {
         setIsOver(false);
-        console.log("Dropped:", payload.paths);
+        setPop(true);
+        setTimeout(() => setPop(false), 350);
         setFiles((prev) => [...prev, ...payload.paths]);
       }
     });
@@ -39,7 +46,13 @@ function Widget() {
       className={isOver ? "widget over" : "widget"}
       data-tauri-drag-region
     >
-      <div className="hole" onClick={openApp} />
+      <img
+        className={pop ? "char pop" : "char"}
+        src={isOver ? openMouthImg : idleImg}
+        alt="Kirby"
+        draggable={false}
+        onClick={openApp}
+      />
       {files.length > 0 && <div className="badge">{files.length}</div>}
     </main>
   );
