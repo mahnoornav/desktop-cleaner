@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { makeFileItem } from "./categorize";
-import type { FileItem } from "./types";
+import { CATEGORIES, type Category, type FileItem } from "./types";
+import ReviewScreen from "./ReviewScreen";
 import "./App.css";
 
 function MainApp() {
   const [queue, setQueue] = useState<FileItem[]>([]);
+  const [view, setView] = useState<"queue" | "review">("queue");
 
   useEffect(() => {
     const win = getCurrentWindow();
@@ -34,6 +36,20 @@ function MainApp() {
     };
   }, []);
 
+  function changeCategory(path: string, category: Category) {
+    setQueue((prev) =>
+      prev.map((item) => (item.path === path ? { ...item, category } : item)),
+    );
+  }
+
+  function skipItem(path: string) {
+    setQueue((prev) => prev.filter((item) => item.path !== path));
+  }
+
+  if (view === "review") {
+    return <ReviewScreen items={queue} onBack={() => setView("queue")} />;
+  }
+
   return (
     <main className="app">
       <h1>Collected files</h1>
@@ -45,11 +61,37 @@ function MainApp() {
       <ul className="queue">
         {queue.map((item) => (
           <li key={item.path} className="row">
-            <span className="name">{item.name}</span>
-            <span className="pill">{item.category}</span>
+            <span className="name" title={item.path}>
+              {item.name}
+            </span>
+            <select
+              className="cat"
+              value={item.category}
+              onChange={(e) =>
+                changeCategory(item.path, e.target.value as Category)
+              }
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <button className="skip" onClick={() => skipItem(item.path)}>
+              Skip
+            </button>
           </li>
         ))}
       </ul>
+      <div className="actions">
+        <button
+          className="primary"
+          disabled={queue.length === 0}
+          onClick={() => setView("review")}
+        >
+          Review {queue.length} change{queue.length === 1 ? "" : "s"}
+        </button>
+      </div>
     </main>
   );
 }
