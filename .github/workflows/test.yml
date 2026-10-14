@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  rust:
+    name: Rust tests (cargo)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # Tauri checks that the frontend build folder exists when compiling,
+      # so give it a placeholder instead of running a full frontend build
+      - name: Create placeholder frontend folder
+        run: mkdir -p dist && echo "<html></html>" > dist/index.html
+      - name: Run cargo test
+        working-directory: src-tauri
+        run: cargo test
