@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { Window } from "@tauri-apps/api/window";
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import idleImg from "./assets/idle.png";
 import openMouthImg from "./assets/open-mouth.png";
 import happyImg from "./assets/happy.png";
@@ -19,9 +19,10 @@ function Widget() {
   const [isOver, setIsOver] = useState(false);
   const [pop, setPop] = useState(false);
   const [happy, setHappy] = useState(false);
-  const [files, setFiles] = useState<string[]>([]);
+  const [count, setCount] = useState(0);
   const happyTimer = useRef<number | undefined>(undefined);
 
+  // Effect 1: listen for files being dragged onto the widget
   useEffect(() => {
     // Load the other frames early so there is no flicker
     new Image().src = openMouthImg;
@@ -40,9 +41,19 @@ function Widget() {
         setHappy(true);
         window.clearTimeout(happyTimer.current);
         happyTimer.current = window.setTimeout(() => setHappy(false), 1500);
-        setFiles((prev) => [...prev, ...payload.paths]);
         emit("files-dropped", payload.paths);
       }
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, []);
+
+  // Effect 2: listen for the queue size from the main window
+  useEffect(() => {
+    const unlistenPromise = listen<number>("queue-count", (event) => {
+      setCount(event.payload);
     });
 
     return () => {
@@ -64,7 +75,7 @@ function Widget() {
         draggable={false}
         onClick={openApp}
       />
-      {files.length > 0 && <div className="badge">{files.length}</div>}
+      {count > 0 && <div className="badge">{count}</div>}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { makeFileItem } from "./categorize";
 import { CATEGORIES, type Category, type FileItem } from "./types";
 import ReviewScreen from "./ReviewScreen";
@@ -35,6 +35,11 @@ function MainApp() {
       unlistenPromise.then((unlisten) => unlisten());
     };
   }, []);
+
+  // Tell the widget how many files are in the queue
+  useEffect(() => {
+    emit("queue-count", queue.length);
+  }, [queue]);
 
   function changeCategory(path: string, category: Category) {
     setQueue((prev) =>
