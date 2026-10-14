@@ -17,9 +17,12 @@ export interface FileItem {
   path: string;
   name: string;
   category: Category;
+  kind?: "file" | "folder";
 }
 
 export type MoveStatus = "ok" | "already-there" | "name-clash";
+
+export type PathKind = "file" | "folder" | "missing" | "unreadable" | "other";
 
 export interface PlannedMove {
   item: FileItem;
