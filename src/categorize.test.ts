@@ -71,3 +71,14 @@ describe("makeFileItem", () => {
     });
   });
 });
+
+describe("edge cases", () => {
+  it("does not treat object property names as extensions", () => {
+    expect(categorize("notes.constructor")).toBe("Other / Needs Review");
+    expect(categorize("data.toString")).toBe("Other / Needs Review");
+  });
+
+  it("handles a folder path with a trailing slash", () => {
+    expect(getName("/Users/me/Desktop/My Folder/")).toBe("My Folder");
+  });
+});
