@@ -44,7 +44,8 @@ const EXTENSION_MAP: Record<string, Category> = {
 };
 
 export function getName(path: string): string {
-  return path.split("/").pop() ?? path;
+  const parts = path.split("/").filter((part) => part !== "");
+  return parts.pop() ?? path;
 }
 
 export function getExtension(name: string): string {
@@ -54,7 +55,11 @@ export function getExtension(name: string): string {
 }
 
 export function categorize(name: string): Category {
-  return EXTENSION_MAP[getExtension(name)] ?? "Other / Needs Review";
+  const ext = getExtension(name);
+  if (Object.prototype.hasOwnProperty.call(EXTENSION_MAP, ext)) {
+    return EXTENSION_MAP[ext];
+  }
+  return "Other / Needs Review";
 }
 
 export function makeFileItem(path: string): FileItem {
