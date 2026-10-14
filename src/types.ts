@@ -18,3 +18,12 @@ export interface FileItem {
   name: string;
   category: Category;
 }
+
+export type MoveStatus = "ok" | "already-there" | "name-clash";
+
+export interface PlannedMove {
+  item: FileItem;
+  destinationFolder: string;
+  destinationPath: string;
+  status: MoveStatus;
+}
