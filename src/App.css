@@ -7,6 +7,7 @@ body,
   user-select: none;
 }
 
+/* Widget */
 .widget {
   position: relative;
   width: 100vw;
@@ -64,18 +65,15 @@ body,
   justify-content: center;
 }
 
+/* Main window */
 .app {
-  min-height: 100vh;
+  height: 100vh;
   box-sizing: border-box;
   padding: 28px;
+  overflow-y: auto;
   background: #14121f;
   color: #edeaf7;
   font-family: sans-serif;
-}
-
-.app {
-  height: 100vh;
-  overflow-y: auto;
 }
 
 .app h1 {

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { Window } from "@tauri-apps/api/window";
+import { emit } from "@tauri-apps/api/event";
 import idleImg from "./assets/idle.png";
 import openMouthImg from "./assets/open-mouth.png";
-import { emit } from "@tauri-apps/api/event";
+import happyImg from "./assets/happy.png";
 import "./App.css";
 
 async function openApp() {
@@ -17,11 +18,14 @@ async function openApp() {
 function Widget() {
   const [isOver, setIsOver] = useState(false);
   const [pop, setPop] = useState(false);
+  const [happy, setHappy] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
+  const happyTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    // Load the open-mouth image early so there is no flicker on first drag
+    // Load the other frames early so there is no flicker
     new Image().src = openMouthImg;
+    new Image().src = happyImg;
 
     const unlistenPromise = getCurrentWebview().onDragDropEvent((event) => {
       const payload = event.payload;
@@ -33,7 +37,9 @@ function Widget() {
         setIsOver(false);
         setPop(true);
         setTimeout(() => setPop(false), 350);
-        setFiles((prev) => [...prev, ...payload.paths]);
+        setHappy(true);
+        window.clearTimeout(happyTimer.current);
+        happyTimer.current = window.setTimeout(() => setHappy(false), 1500);
         setFiles((prev) => [...prev, ...payload.paths]);
         emit("files-dropped", payload.paths);
       }
@@ -44,6 +50,8 @@ function Widget() {
     };
   }, []);
 
+  const frame = isOver ? openMouthImg : happy ? happyImg : idleImg;
+
   return (
     <main
       className={isOver ? "widget over" : "widget"}
@@ -51,7 +59,7 @@ function Widget() {
     >
       <img
         className={pop ? "char pop" : "char"}
-        src={isOver ? openMouthImg : idleImg}
+        src={frame}
         alt="Kirby"
         draggable={false}
         onClick={openApp}
