@@ -1,7 +1,6 @@
-# Tauri + React + Typescript
+# Desktop Cleaner
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+![Tests](https://github.com/mahnoornav/desktop-cleaner/actions/workflows/test.yml/badge.svg)
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+A drag-and-drop desktop widget that collects files and tidies them into
+category folders, with a review step before anything moves.
