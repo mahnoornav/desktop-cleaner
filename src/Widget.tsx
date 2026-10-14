@@ -3,6 +3,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { Window } from "@tauri-apps/api/window";
 import idleImg from "./assets/idle.png";
 import openMouthImg from "./assets/open-mouth.png";
+import { emit } from "@tauri-apps/api/event";
 import "./App.css";
 
 async function openApp() {
@@ -33,6 +34,8 @@ function Widget() {
         setPop(true);
         setTimeout(() => setPop(false), 350);
         setFiles((prev) => [...prev, ...payload.paths]);
+        setFiles((prev) => [...prev, ...payload.paths]);
+        emit("files-dropped", payload.paths);
       }
     });
 
