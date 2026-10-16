@@ -57,8 +57,8 @@ describe("categorize", () => {
     ["Makefile"],
     [".gitignore"],
     ["My Folder"],
-  ])("sends %s to Other / Needs Review", (name) => {
-    expect(categorize(name)).toBe("Other / Needs Review");
+  ])("sends %s to Needs Review", (name) => {
+    expect(categorize(name)).toBe("Needs Review");
   });
 });
 
@@ -74,8 +74,8 @@ describe("makeFileItem", () => {
 
 describe("edge cases", () => {
   it("does not treat object property names as extensions", () => {
-    expect(categorize("notes.constructor")).toBe("Other / Needs Review");
-    expect(categorize("data.toString")).toBe("Other / Needs Review");
+    expect(categorize("notes.constructor")).toBe("Needs Review");
+    expect(categorize("data.toString")).toBe("Needs Review");
   });
 
   it("handles a folder path with a trailing slash", () => {

@@ -102,6 +102,8 @@ body,
 }
 
 .name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -182,4 +184,39 @@ body,
   border: 1px solid #3a3560;
   border-radius: 6px;
   padding: 2px 8px;
+}
+
+.group {
+  font-size: 16px;
+  margin: 24px 0 4px;
+  color: #edeaf7;
+}
+
+.cat {
+  flex-shrink: 0;
+  width: 230px;
+  font: inherit;
+  font-size: 13px;
+  color: #edeaf7;
+  background: #1e1b31;
+  border: 1px solid #3a3560;
+  border-radius: 999px;
+  padding: 0 14px;
+  min-height: 44px;
+}
+
+.skip {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 13px;
+  color: #a9a4c4;
+  background: none;
+  border: 0;
+  padding: 0 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.skip:hover {
+  color: #edeaf7;
 }

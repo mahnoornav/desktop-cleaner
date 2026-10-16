@@ -8,6 +8,7 @@ import {
   type Category,
   type FileItem,
   type PathKind,
+  type ReportEntry,
 } from "./types";
 import ReviewScreen from "./ReviewScreen";
 import "./App.css";
@@ -46,7 +47,7 @@ function MainApp() {
         } else if (kind === "folder") {
           incoming.push({
             ...makeFileItem(path),
-            category: "Other / Needs Review",
+            category: "Needs Review",
             kind: "folder",
           });
         } else {
@@ -86,8 +87,27 @@ function MainApp() {
     setQueue((prev) => prev.filter((item) => item.path !== path));
   }
 
+  function finishRun(report: ReportEntry[]) {
+    const finished = new Set(
+        report
+        .filter(
+            (e) =>
+            e.outcome.status === "moved" || e.outcome.status === "already-there",
+        )
+        .map((e) => e.item.path),
+    );
+    setQueue((prev) => prev.filter((item) => !finished.has(item.path)));
+    setView("queue");
+   }
+
   if (view === "review") {
-    return <ReviewScreen items={queue} onBack={() => setView("queue")} />;
+    return (
+        <ReviewScreen
+        items={queue}
+        onBack={() => setView("queue")}
+        onDone={finishRun}
+        />
+    );
   }
 
   return (

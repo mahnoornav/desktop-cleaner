@@ -3,14 +3,14 @@ export type Category =
   | "Screenshots & Images"
   | "Code & Project Files"
   | "Archives & Downloads"
-  | "Other / Needs Review";
+  | "Needs Review";
 
 export const CATEGORIES: Category[] = [
   "School Documents",
   "Screenshots & Images",
   "Code & Project Files",
   "Archives & Downloads",
-  "Other / Needs Review",
+  "Needs Review",
 ];
 
 export interface FileItem {
@@ -29,4 +29,15 @@ export interface PlannedMove {
   destinationFolder: string;
   destinationPath: string;
   status: MoveStatus;
+}
+
+export type MoveOutcome =
+  | { status: "moved"; to: string }
+  | { status: "already-there" }
+  | { status: "exists"; to: string }
+  | { status: "failed"; reason: string };
+
+export interface ReportEntry {
+  item: FileItem;
+  outcome: MoveOutcome;
 }

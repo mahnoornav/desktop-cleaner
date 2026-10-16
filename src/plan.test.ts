@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { joinPath, planMoves } from "./plan";
 import { makeFileItem } from "./categorize";
+import { CATEGORIES } from "./types";
 
 const BASE = "/Users/me/Desktop";
 
@@ -61,8 +62,16 @@ describe("planMoves", () => {
 
   it("does not clash when the same name goes to different folders", () => {
     const pdf = makeFileItem("/x/report.pdf");
-    const edited = { ...makeFileItem("/y/report.pdf"), category: "Other / Needs Review" as const };
+    const edited = { ...makeFileItem("/y/report.pdf"), category: "Needs Review" as const };
     const moves = planMoves([pdf, edited], BASE);
     expect(moves.map((m) => m.status)).toEqual(["ok", "ok"]);
+  });
+});
+
+describe("category names", () => {
+  it("are safe to use as folder names", () => {
+    for (const name of CATEGORIES) {
+      expect(name).not.toMatch(/[\/:\\]/);
+    }
   });
 });

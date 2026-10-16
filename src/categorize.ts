@@ -59,7 +59,7 @@ export function categorize(name: string): Category {
   if (Object.prototype.hasOwnProperty.call(EXTENSION_MAP, ext)) {
     return EXTENSION_MAP[ext];
   }
-  return "Other / Needs Review";
+  return "Needs Review";
 }
 
 export function makeFileItem(path: string): FileItem {
