@@ -2,6 +2,7 @@ use serde::Serialize;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
+use tauri::Manager;
 
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -11,6 +12,26 @@ enum PathKind {
     Missing,
     Unreadable,
     Other,
+}
+
+fn queue_file(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join("queue.json"))
+}
+
+fn write_atomically(path: &Path, contents: &str) -> std::io::Result<()> {
+    let tmp = path.with_extension("json.tmp");
+    fs::write(&tmp, contents)?;
+    fs::rename(&tmp, path)
+}
+
+fn read_if_exists(path: &Path) -> std::io::Result<Option<String>> {
+    match fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
 }
 
 fn inspect(path: &str) -> PathKind {
@@ -95,11 +116,28 @@ fn move_item(source: String, dest_folder: String) -> MoveOutcome {
     move_into_folder(&source, &dest_folder)
 }
 
+#[tauri::command]
+fn save_queue(app: tauri::AppHandle, json: String) -> Result<(), String> {
+    let path = queue_file(&app)?;
+    write_atomically(&path, &json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_queue(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let path = queue_file(&app)?;
+    read_if_exists(&path).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![inspect_path, move_item])
+        .invoke_handler(tauri::generate_handler![
+            inspect_path,
+            move_item,
+            save_queue,
+            load_queue
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -248,6 +286,36 @@ mod tests {
             fs::read_to_string(dest_folder.join("Project").join("notes.txt")).unwrap(),
             "keep me"
         );
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    // ---- queue storage ----
+
+    #[test]
+    fn saves_and_loads_text() {
+        let dir = temp_folder("queue-roundtrip");
+        let file = dir.join("queue.json");
+        write_atomically(&file, "[1,2,3]").unwrap();
+        assert_eq!(read_if_exists(&file).unwrap(), Some("[1,2,3]".to_string()));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn loading_a_missing_file_gives_none() {
+        let dir = temp_folder("queue-none");
+        let file = dir.join("queue.json");
+        assert_eq!(read_if_exists(&file).unwrap(), None);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn saving_again_replaces_the_contents_and_leaves_no_temp_file() {
+        let dir = temp_folder("queue-replace");
+        let file = dir.join("queue.json");
+        write_atomically(&file, "old").unwrap();
+        write_atomically(&file, "new").unwrap();
+        assert_eq!(fs::read_to_string(&file).unwrap(), "new");
+        assert!(!dir.join("queue.json.tmp").exists());
         fs::remove_dir_all(&dir).unwrap();
     }
 }
