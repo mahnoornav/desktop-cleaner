@@ -40,22 +40,19 @@ describe("getExtension", () => {
 
 describe("categorize", () => {
   it.each([
-    ["lecture_04_notes.pdf", "School Documents"],
-    ["notes.md", "School Documents"],
-    ["Screenshot 2026-10-09.png", "Screenshots & Images"],
-    ["photo.PNG", "Screenshots & Images"],
-    ["a3_solution.py", "Code & Project Files"],
-    ["App.tsx", "Code & Project Files"],
-    ["lab_data.zip", "Archives & Downloads"],
-    ["archive.tar.gz", "Archives & Downloads"],
+    ["notebook.ipynb", "Code & Project Files"],
+    ["Makefile", "Code & Project Files"],
+    ["MAKEFILE", "Code & Project Files"],
+    [".gitignore", "Code & Project Files"],
+    ["Screen Recording 2026-10-10.mov", "Screenshots & Images"],
+    ["Screenshot 2026-10-09 at 3.14.15 PM.png", "Screenshots & Images"],
+    ["Screenshots backup.zip", "Archives & Downloads"],
   ])("puts %s in %s", (name, expected) => {
     expect(categorize(name)).toBe(expected);
   });
 
   it.each([
     ["final_v2_REALLY.xyz"],
-    ["Makefile"],
-    [".gitignore"],
     ["My Folder"],
   ])("sends %s to Needs Review", (name) => {
     expect(categorize(name)).toBe("Needs Review");

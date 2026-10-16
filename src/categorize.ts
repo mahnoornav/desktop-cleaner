@@ -33,6 +33,7 @@ const EXTENSION_MAP: Record<string, Category> = {
   html: "Code & Project Files",
   css: "Code & Project Files",
   json: "Code & Project Files",
+  ipynb: "Code & Project Files",
 
   zip: "Archives & Downloads",
   rar: "Archives & Downloads",
@@ -54,11 +55,31 @@ export function getExtension(name: string): string {
   return name.slice(dot + 1).toLowerCase();
 }
 
+const FILENAME_MAP: Record<string, Category> = {
+  makefile: "Code & Project Files",
+  dockerfile: "Code & Project Files",
+  ".gitignore": "Code & Project Files",
+};
+
+const NAME_PATTERNS: { pattern: RegExp; category: Category }[] = [
+  { pattern: /^screen ?(shot|recording)\b/i, category: "Screenshots & Images" },
+];
+
+function hasOwn(obj: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
 export function categorize(name: string): Category {
-  const ext = getExtension(name);
-  if (Object.prototype.hasOwnProperty.call(EXTENSION_MAP, ext)) {
-    return EXTENSION_MAP[ext];
+  const lower = name.toLowerCase();
+  if (hasOwn(FILENAME_MAP, lower)) return FILENAME_MAP[lower];
+
+  for (const rule of NAME_PATTERNS) {
+    if (rule.pattern.test(name)) return rule.category;
   }
+
+  const ext = getExtension(name);
+  if (hasOwn(EXTENSION_MAP, ext)) return EXTENSION_MAP[ext];
+
   return "Needs Review";
 }
 
