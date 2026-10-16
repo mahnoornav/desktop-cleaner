@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { makeFileItem } from "./categorize";
+import { parseQueue, serializeQueue } from "./queueStorage";
 import {
   CATEGORIES,
   type Category,
@@ -17,7 +18,9 @@ function MainApp() {
   const [queue, setQueue] = useState<FileItem[]>([]);
   const [view, setView] = useState<"queue" | "review">("queue");
   const [notice, setNotice] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
+  // Hide instead of closing, so the widget can reopen this window
   useEffect(() => {
     const win = getCurrentWindow();
     const unlistenPromise = win.onCloseRequested((event) => {
@@ -29,9 +32,55 @@ function MainApp() {
     };
   }, []);
 
+  // Load the saved queue once, when the app starts
+  useEffect(() => {
+    async function restore() {
+      try {
+        const json = await invoke<string | null>("load_queue");
+        if (json) {
+          const saved = parseQueue(json);
+          const checked = await Promise.all(
+            saved.map(async (item) => ({
+              item,
+              kind: await invoke<PathKind>("inspect_path", { path: item.path }),
+            })),
+          );
+          const present = checked
+            .filter((c) => c.kind === "file" || c.kind === "folder")
+            .map((c) => c.item);
+          const gone = saved.length - present.length;
+          if (gone > 0) {
+            setNotice(
+              `${gone} item${gone === 1 ? "" : "s"} from last time no longer exist and ${gone === 1 ? "was" : "were"} removed.`,
+            );
+          }
+          setQueue((prev) => {
+            const known = new Set(prev.map((i) => i.path));
+            return [...present.filter((i) => !known.has(i.path)), ...prev];
+          });
+        }
+        setLoaded(true);
+      } catch (e) {
+        console.error("Could not load the saved queue:", e);
+        setNotice(
+          "The saved queue couldn't be loaded, so saving is turned off for this session.",
+        );
+      }
+    }
+    restore();
+  }, []);
+
+  // Save the queue whenever it changes, but only after loading has finished
+  useEffect(() => {
+    if (!loaded) return;
+    invoke("save_queue", { json: serializeQueue(queue) }).catch((e) =>
+      console.error("Could not save the queue:", e),
+    );
+  }, [queue, loaded]);
+
+  // Collect files dropped on the widget
   useEffect(() => {
     const unlistenPromise = listen<string[]>("files-dropped", async (event) => {
-      // Ask Rust what each dropped item really is
       const results = await Promise.all(
         event.payload.map(async (path) => ({
           path,
@@ -89,24 +138,25 @@ function MainApp() {
 
   function finishRun(report: ReportEntry[]) {
     const finished = new Set(
-        report
+      report
         .filter(
-            (e) =>
-            e.outcome.status === "moved" || e.outcome.status === "already-there",
+          (e) =>
+            e.outcome.status === "moved" ||
+            e.outcome.status === "already-there",
         )
         .map((e) => e.item.path),
     );
     setQueue((prev) => prev.filter((item) => !finished.has(item.path)));
     setView("queue");
-   }
+  }
 
   if (view === "review") {
     return (
-        <ReviewScreen
+      <ReviewScreen
         items={queue}
         onBack={() => setView("queue")}
         onDone={finishRun}
-        />
+      />
     );
   }
 
