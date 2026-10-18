@@ -145,7 +145,12 @@ body,
   line-height: 1.2;
 }
 
-.big.pale { color: var(--muted); margin-bottom: 10px; }
+.big.pale {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
 
 .tidbit {
   margin: 6px 0 0;
@@ -191,17 +196,21 @@ body,
   100% { transform: rotate(360deg) scale(1); }
 }
 
-.spark {
+.starfield {
   position: absolute;
-  line-height: 1;
-  animation: twinkle 2.4s ease-in-out infinite;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-.s1 { top: 2px; left: 6px; font-size: 22px; color: #6bd8e0; }
-.s2 { top: 0; right: 10px; font-size: 16px; color: #ffd76a; animation-delay: 0.5s; }
-.s3 { top: 62px; right: -4px; font-size: 14px; color: #dd40d4; animation-delay: 1s; }
-.s4 { bottom: 6px; left: 0; font-size: 15px; color: #b8d964; animation-delay: 1.5s; }
-.s5 { bottom: 0; right: 24px; font-size: 20px; color: #f76e6e; animation-delay: 0.9s; }
+.app > *:not(.starfield) { position: relative; z-index: 1; }
+
+.star {
+  position: absolute;
+  line-height: 1;
+  animation: twinkle 2.8s ease-in-out infinite;
+}
 
 @keyframes twinkle {
   0%, 100% { opacity: 0.35; transform: scale(0.8) rotate(0); }
@@ -209,8 +218,8 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hop, .sway, .spark, .hero-char.spin { animation: none; }
-  .spark { opacity: 0.8; }
+  .hop, .sway, .star, .hero-char.spin, .bs.spin { animation: none; }
+  .star { opacity: 0.7; }
 }
 
 .bar {
@@ -227,6 +236,9 @@ body,
   border-radius: 6px;
   transition: width 0.25s ease;
 }
+
+.bs { display: block; }
+.bs.spin { animation: spin 0.6s ease-in-out 1; }
 
 .bar-star {
   position: absolute;
@@ -366,13 +378,14 @@ body,
 }
 
 .picker-btn {
+  font-family: ui-rounded, "SF Pro Rounded", var(--font);
   flex-shrink: 0;
   width: 230px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font: inherit;
   font-size: 13px;
+  font-weight: 500;
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -406,7 +419,9 @@ body,
   border: 1px solid var(--line);
   border-radius: 22px;
   box-shadow: 0 12px 32px rgba(214, 51, 111, 0.22);
+  font-family: ui-rounded, "SF Pro Rounded", var(--font);
   font-size: 13px;
+  font-weight: 500;
 }
 
 .picker-opt {
@@ -479,3 +494,5 @@ select:focus-visible {
   outline: 2px solid var(--pink);
   outline-offset: 2px;
 }
+
+.swatch { font-size: 15px; line-height: 1; }

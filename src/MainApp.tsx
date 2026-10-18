@@ -13,16 +13,37 @@ import {
 } from "./types";
 import ReviewScreen from "./ReviewScreen";
 import idleImg from "./assets/idle.png";
-import openMouthImg from "./assets/open-mouth.png";
+// Header character. When you have the star-free version, change this path.
+import heroImg from "./assets/happy.png";
 import "./App.css";
 
-const CATEGORY_STYLE: Record<Category, { icon: string; bg: string }> = {
-  "School Documents": { icon: "📚", bg: "#ffe0ec" },
-  "Screenshots & Images": { icon: "🌸", bg: "#dff1ff" },
-  "Code & Project Files": { icon: "💻", bg: "#def7e8" },
-  "Archives & Downloads": { icon: "📦", bg: "#fff3cf" },
-  "Needs Review": { icon: "🔍", bg: "#eee4ff" },
+const CATEGORY_STYLE: Record<Category, { color: string; bg: string }> = {
+  "School Documents": { color: "#ff7fb0", bg: "#ffe0ec" },
+  "Screenshots & Images": { color: "#6fb4ee", bg: "#dff1ff" },
+  "Code & Project Files": { color: "#5fcf98", bg: "#def7e8" },
+  "Archives & Downloads": { color: "#f2b83d", bg: "#fff3cf" },
+  "Needs Review": { color: "#a98cf2", bg: "#eee4ff" },
 };
+
+// Little stars scattered behind the whole window (x and y are percentages)
+const STARS = [
+  { x: 4, y: 6, size: 20, color: "#6bd8e0", delay: 0 },
+  { x: 14, y: 30, size: 13, color: "#ffd76a", delay: 0.6 },
+  { x: 24, y: 8, size: 15, color: "#dd40d4", delay: 1.2 },
+  { x: 36, y: 22, size: 11, color: "#b8d964", delay: 0.3 },
+  { x: 47, y: 4, size: 18, color: "#f76e6e", delay: 1.7 },
+  { x: 58, y: 26, size: 12, color: "#7b9cf5", delay: 0.9 },
+  { x: 68, y: 6, size: 14, color: "#ffd76a", delay: 2.1 },
+  { x: 78, y: 28, size: 20, color: "#6bd8e0", delay: 0.4 },
+  { x: 90, y: 8, size: 16, color: "#f5b06b", delay: 1.4 },
+  { x: 96, y: 34, size: 11, color: "#dd40d4", delay: 1.9 },
+  { x: 2, y: 55, size: 14, color: "#7b9cf5", delay: 1.1 },
+  { x: 97, y: 60, size: 18, color: "#b8d964", delay: 0.2 },
+  { x: 3, y: 82, size: 19, color: "#f76e6e", delay: 1.6 },
+  { x: 94, y: 86, size: 13, color: "#ffd76a", delay: 0.8 },
+  { x: 30, y: 94, size: 12, color: "#6bd8e0", delay: 2.3 },
+  { x: 62, y: 92, size: 16, color: "#dd40d4", delay: 1.3 },
+];
 
 // A custom dropdown, because the built-in one can't be styled to look cute.
 function CategoryPicker({
@@ -82,7 +103,9 @@ function CategoryPicker({
         aria-expanded={open}
         onClick={toggle}
       >
-        <span>{current.icon}</span>
+        <span className="swatch" style={{ color: current.color }}>
+          ★
+        </span>
         <span className="picker-label">{value}</span>
         <span className="picker-caret">⌄</span>
       </button>
@@ -106,7 +129,9 @@ function CategoryPicker({
                   setOpen(false);
                 }}
               >
-                <span>{CATEGORY_STYLE[c].icon}</span>
+                <span className="swatch" style={{ color: CATEGORY_STYLE[c].color }}>
+                  ★
+                </span>
                 <span className="picker-label">{c}</span>
                 {c === value && <span className="picker-star">★</span>}
               </li>
@@ -128,6 +153,9 @@ function MainApp() {
   // Bumps each time new files arrive, which replays the one-time spin
   const [spinKey, setSpinKey] = useState(0);
   const prevTotal = useRef(0);
+  // Bumps whenever the selection changes, which spins the star on the bar
+  const [barKey, setBarKey] = useState(0);
+  const prevPicked = useRef(0);
 
   // Hide instead of closing, so the widget can reopen this window
   useEffect(() => {
@@ -268,6 +296,11 @@ function MainApp() {
   const selectedItems = queue.filter((item) => selected.has(item.path));
   const allSelected = queue.length > 0 && selectedItems.length === queue.length;
 
+  useEffect(() => {
+    if (selectedItems.length !== prevPicked.current) setBarKey((k) => k + 1);
+    prevPicked.current = selectedItems.length;
+  }, [selectedItems.length]);
+
   function toggleAll() {
     setSelected(allSelected ? new Set() : new Set(queue.map((i) => i.path)));
   }
@@ -303,6 +336,23 @@ function MainApp() {
 
   return (
     <main className="app">
+      <div className="starfield" aria-hidden="true">
+        {STARS.map((s, i) => (
+          <span
+            key={i}
+            className="star"
+            style={{
+              left: `${s.x}%`,
+              top: `${s.y}%`,
+              fontSize: s.size,
+              color: s.color,
+              animationDelay: `${s.delay}s`,
+            }}
+          >
+            ★
+          </span>
+        ))}
+      </div>
       <header className="hero">
         <div className="hero-left">
           <p className="big">
@@ -310,19 +360,14 @@ function MainApp() {
               ? "No files waiting"
               : `${total} file${total === 1 ? "" : "s"} waiting`}
           </p>
-          <p className="tidbit">Nothing moves until you confirm ✨</p>
+          <p className="tidbit">Nothing moves until you confirm</p>
         </div>
         <div className="hero-stage" aria-hidden="true">
-          <span className="spark s1">★</span>
-          <span className="spark s2">★</span>
-          <span className="spark s3">★</span>
-          <span className="spark s4">★</span>
-          <span className="spark s5">★</span>
           <div className={total > 0 ? "hop" : "sway"}>
             <img
               key={spinKey}
               className={spinKey > 0 ? "hero-char spin" : "hero-char"}
-              src={total > 0 ? openMouthImg : idleImg}
+              src={total > 0 ? heroImg : idleImg}
               alt=""
               draggable={false}
             />
@@ -342,7 +387,12 @@ function MainApp() {
             <div className="fill" style={{ width: `${percent}%` }} />
             {picked > 0 && (
               <span className="bar-star" style={{ left: `${percent}%` }}>
-                ★
+                <span
+                  key={barKey}
+                  className={barKey > 0 ? "bs spin" : "bs"}
+                >
+                  ★
+                </span>
               </span>
             )}
           </div>
@@ -410,4 +460,3 @@ function MainApp() {
 }
 
 export default MainApp;
-
