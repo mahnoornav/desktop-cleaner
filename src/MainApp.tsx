@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -12,9 +13,8 @@ import {
   type ReportEntry,
 } from "./types";
 import ReviewScreen from "./ReviewScreen";
-import idleImg from "./assets/idle.png";
-// Header character. When you have the star-free version, change this path.
-import heroImg from "./assets/happy.png";
+import idleImg from "./assets/idle-clean.png";
+import heroImg from "./assets/eating-clean.png";
 import "./App.css";
 
 const CATEGORY_STYLE: Record<Category, { color: string; bg: string }> = {
@@ -109,7 +109,8 @@ function CategoryPicker({
         <span className="picker-label">{value}</span>
         <span className="picker-caret">⌄</span>
       </button>
-      {open && (
+      {open &&
+        createPortal(
         <>
           <div className="picker-backdrop" onClick={() => setOpen(false)} />
           <ul
@@ -137,7 +138,8 @@ function CategoryPicker({
               </li>
             ))}
           </ul>
-        </>
+        </>,
+        document.body,
       )}
     </>
   );
@@ -150,9 +152,6 @@ function MainApp() {
   const [view, setView] = useState<"queue" | "review">("queue");
   const [notice, setNotice] = useState("");
   const [loaded, setLoaded] = useState(false);
-  // Bumps each time new files arrive, which replays the one-time spin
-  const [spinKey, setSpinKey] = useState(0);
-  const prevTotal = useRef(0);
   // Bumps whenever the selection changes, which spins the star on the bar
   const [barKey, setBarKey] = useState(0);
   const prevPicked = useRef(0);
@@ -263,12 +262,6 @@ function MainApp() {
     emit("queue-count", queue.length);
   }, [queue]);
 
-  // Spin the character when new files arrive
-  useEffect(() => {
-    if (queue.length > prevTotal.current) setSpinKey((k) => k + 1);
-    prevTotal.current = queue.length;
-  }, [queue.length]);
-
   function changeCategory(path: string, category: Category) {
     setQueue((prev) =>
       prev.map((item) => (item.path === path ? { ...item, category } : item)),
@@ -353,7 +346,7 @@ function MainApp() {
           </span>
         ))}
       </div>
-      <header className="hero">
+      <header className="hero card">
         <div className="hero-left">
           <p className="big">
             {total === 0
@@ -365,8 +358,7 @@ function MainApp() {
         <div className="hero-stage" aria-hidden="true">
           <div className={total > 0 ? "hop" : "sway"}>
             <img
-              key={spinKey}
-              className={spinKey > 0 ? "hero-char spin" : "hero-char"}
+              className="hero-char"
               src={total > 0 ? heroImg : idleImg}
               alt=""
               draggable={false}
@@ -399,6 +391,7 @@ function MainApp() {
         </div>
       </header>
 
+      <section className="panel card">
       {notice && <p className="warn-text">{notice}</p>}
 
       <div className="listhead">
@@ -445,6 +438,7 @@ function MainApp() {
           </ul>
         )}
       </div>
+      </section>
 
       <div className="actions">
         <button
