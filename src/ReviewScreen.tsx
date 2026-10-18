@@ -82,9 +82,11 @@ function ReviewScreen({ items, onBack, onDone }: Props) {
           {moved.length} moved, {skipped.length} skipped, {failed.length}{" "}
           failed. Items that were skipped or failed stay in your queue.
         </p>
-        <Group title="Moved" entries={moved} />
-        <Group title="Skipped" entries={skipped} />
-        <Group title="Failed" entries={failed} />
+        <div className="scroll">
+          <Group title="Moved" entries={moved} />
+          <Group title="Skipped" entries={skipped} />
+          <Group title="Failed" entries={failed} />
+        </div>
         <div className="actions">
           <button className="primary" onClick={() => onDone(report)}>
             Done
@@ -131,6 +133,7 @@ function ReviewScreen({ items, onBack, onDone }: Props) {
         Nothing has moved yet. Check the plan, then confirm.
       </p>
 
+      <div className="scroll">
       <ul className="queue">
         {plan.map((move) => (
           <li key={move.item.path} className="row">
@@ -147,6 +150,7 @@ function ReviewScreen({ items, onBack, onDone }: Props) {
           </li>
         ))}
       </ul>
+      </div>
 
       {clashes > 0 && (
         <p className="warn-text">

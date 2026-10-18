@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -12,13 +12,122 @@ import {
   type ReportEntry,
 } from "./types";
 import ReviewScreen from "./ReviewScreen";
+import idleImg from "./assets/idle.png";
+import openMouthImg from "./assets/open-mouth.png";
 import "./App.css";
+
+const CATEGORY_STYLE: Record<Category, { icon: string; bg: string }> = {
+  "School Documents": { icon: "📚", bg: "#ffe0ec" },
+  "Screenshots & Images": { icon: "🌸", bg: "#dff1ff" },
+  "Code & Project Files": { icon: "💻", bg: "#def7e8" },
+  "Archives & Downloads": { icon: "📦", bg: "#fff3cf" },
+  "Needs Review": { icon: "🔍", bg: "#eee4ff" },
+};
+
+// A custom dropdown, because the built-in one can't be styled to look cute.
+function CategoryPicker({
+  value,
+  onChange,
+}: {
+  value: Category;
+  onChange: (c: Category) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 240 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  function toggle() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const width = Math.max(r.width, 240);
+    const menuHeight = CATEGORIES.length * 42 + 20;
+    const flipUp =
+      r.bottom + menuHeight > window.innerHeight && r.top > menuHeight;
+    setPos({
+      width,
+      left: Math.max(12, Math.min(r.left, window.innerWidth - width - 12)),
+      top: flipUp ? r.top - menuHeight - 6 : r.bottom + 6,
+    });
+    setOpen(true);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", close);
+    document.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", close);
+      document.removeEventListener("scroll", close, true);
+    };
+  }, [open]);
+
+  const current = CATEGORY_STYLE[value];
+  return (
+    <>
+      <button
+        ref={btnRef}
+        className="picker-btn"
+        style={{ background: current.bg }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={toggle}
+      >
+        <span>{current.icon}</span>
+        <span className="picker-label">{value}</span>
+        <span className="picker-caret">⌄</span>
+      </button>
+      {open && (
+        <>
+          <div className="picker-backdrop" onClick={() => setOpen(false)} />
+          <ul
+            className="picker-menu"
+            role="listbox"
+            style={{ top: pos.top, left: pos.left, width: pos.width }}
+          >
+            {CATEGORIES.map((c) => (
+              <li
+                key={c}
+                role="option"
+                aria-selected={c === value}
+                className={c === value ? "picker-opt on" : "picker-opt"}
+                style={{ ["--opt" as string]: CATEGORY_STYLE[c].bg }}
+                onClick={() => {
+                  onChange(c);
+                  setOpen(false);
+                }}
+              >
+                <span>{CATEGORY_STYLE[c].icon}</span>
+                <span className="picker-label">{c}</span>
+                {c === value && <span className="picker-star">★</span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
 
 function MainApp() {
   const [queue, setQueue] = useState<FileItem[]>([]);
+  // Paths the person has ticked. Only these go to the review screen.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"queue" | "review">("queue");
   const [notice, setNotice] = useState("");
   const [loaded, setLoaded] = useState(false);
+  // Bumps each time new files arrive, which replays the one-time spin
+  const [spinKey, setSpinKey] = useState(0);
+  const prevTotal = useRef(0);
 
   // Hide instead of closing, so the widget can reopen this window
   useEffect(() => {
@@ -126,6 +235,12 @@ function MainApp() {
     emit("queue-count", queue.length);
   }, [queue]);
 
+  // Spin the character when new files arrive
+  useEffect(() => {
+    if (queue.length > prevTotal.current) setSpinKey((k) => k + 1);
+    prevTotal.current = queue.length;
+  }, [queue.length]);
+
   function changeCategory(path: string, category: Category) {
     setQueue((prev) =>
       prev.map((item) => (item.path === path ? { ...item, category } : item)),
@@ -134,6 +249,27 @@ function MainApp() {
 
   function skipItem(path: string) {
     setQueue((prev) => prev.filter((item) => item.path !== path));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(path);
+      return next;
+    });
+  }
+
+  function toggle(path: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }
+
+  const selectedItems = queue.filter((item) => selected.has(item.path));
+  const allSelected = queue.length > 0 && selectedItems.length === queue.length;
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(queue.map((i) => i.path)));
   }
 
   function finishRun(report: ReportEntry[]) {
@@ -147,61 +283,126 @@ function MainApp() {
         .map((e) => e.item.path),
     );
     setQueue((prev) => prev.filter((item) => !finished.has(item.path)));
+    setSelected((prev) => new Set([...prev].filter((p) => !finished.has(p))));
     setView("queue");
   }
 
   if (view === "review") {
     return (
       <ReviewScreen
-        items={queue}
+        items={selectedItems}
         onBack={() => setView("queue")}
         onDone={finishRun}
       />
     );
   }
 
+  const total = queue.length;
+  const picked = selectedItems.length;
+  const percent = total === 0 ? 0 : Math.round((picked / total) * 100);
+
   return (
     <main className="app">
-      <h1>Collected files</h1>
-      <p className="sub">
-        {queue.length === 0
-          ? "Nothing collected yet. Drop files on the widget."
-          : `${queue.length} item${queue.length === 1 ? "" : "s"} waiting. Nothing moves until you confirm.`}
-      </p>
+      <header className="hero">
+        <div className="hero-left">
+          <p className="big">
+            {total === 0
+              ? "No files waiting"
+              : `${total} file${total === 1 ? "" : "s"} waiting`}
+          </p>
+          <p className="tidbit">Nothing moves until you confirm ✨</p>
+        </div>
+        <div className="hero-stage" aria-hidden="true">
+          <span className="spark s1">★</span>
+          <span className="spark s2">★</span>
+          <span className="spark s3">★</span>
+          <span className="spark s4">★</span>
+          <span className="spark s5">★</span>
+          <div className={total > 0 ? "hop" : "sway"}>
+            <img
+              key={spinKey}
+              className={spinKey > 0 ? "hero-char spin" : "hero-char"}
+              src={total > 0 ? openMouthImg : idleImg}
+              alt=""
+              draggable={false}
+            />
+          </div>
+        </div>
+        <div className="progress">
+          <p className="big pale">
+            {picked} of {total} selected
+          </p>
+          <div
+            className="bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={picked}
+          >
+            <div className="fill" style={{ width: `${percent}%` }} />
+            {picked > 0 && (
+              <span className="bar-star" style={{ left: `${percent}%` }}>
+                ★
+              </span>
+            )}
+          </div>
+        </div>
+      </header>
+
       {notice && <p className="warn-text">{notice}</p>}
-      <ul className="queue">
-        {queue.map((item) => (
-          <li key={item.path} className="row">
-            <span className="name" title={item.path}>
-              {item.name}
-            </span>
-            {item.kind === "folder" && <span className="tag">Folder</span>}
-            <select
-              className="cat"
-              value={item.category}
-              onChange={(e) =>
-                changeCategory(item.path, e.target.value as Category)
-              }
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <button className="skip" onClick={() => skipItem(item.path)}>
-              Skip
-            </button>
-          </li>
-        ))}
-      </ul>
+
+      <div className="listhead">
+        <h1>Collected files</h1>
+        <button className="chipbtn" onClick={toggleAll} disabled={total === 0}>
+          {allSelected ? "Clear all" : "Select all"}
+        </button>
+      </div>
+
+      <div className="scroll">
+        {total === 0 ? (
+          <p className="empty">Drop files on the widget to get started.</p>
+        ) : (
+          <ul className="queue">
+            {queue.map((item) => {
+              const on = selected.has(item.path);
+              return (
+                <li key={item.path} className="row">
+                  <button
+                    className={on ? "dot on" : "dot"}
+                    role="checkbox"
+                    aria-checked={on}
+                    aria-label={`Select ${item.name}`}
+                    onClick={() => toggle(item.path)}
+                  />
+                  <span
+                    className="name clickable"
+                    title={item.path}
+                    onClick={() => toggle(item.path)}
+                  >
+                    {item.name}
+                  </span>
+                  {item.kind === "folder" && <span className="tag">Folder</span>}
+                  <CategoryPicker
+                    value={item.category}
+                    onChange={(c) => changeCategory(item.path, c)}
+                  />
+                  <button className="skip" onClick={() => skipItem(item.path)}>
+                    Skip
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
       <div className="actions">
         <button
           className="primary"
-          disabled={queue.length === 0}
+          disabled={picked === 0}
           onClick={() => setView("review")}
         >
-          Review {queue.length} change{queue.length === 1 ? "" : "s"}
+          Review {picked} change{picked === 1 ? "" : "s"}
         </button>
       </div>
     </main>
@@ -209,3 +410,4 @@ function MainApp() {
 }
 
 export default MainApp;
+
